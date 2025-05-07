@@ -1,0 +1,63 @@
+# Param initialization
+n <- 100
+k <- 100
+p <- k + 1
+
+alpha <- 0.1
+
+
+# Dataset construction
+# generate a dataset with normal distribution, with mean 0 and variance to be sigma^2
+x <- # k number of predictors, something like rnorm(2*n)
+# x has size n*(k+1), the first column is 1, the rest are x_1, ..., x_k
+x_0 <- # upper half of x with size n/2*(k+1)
+x_1 <- # lower half of x with size n/2*(k+1)
+
+y <- # 2D matrix, each y is beta_0 + beta_1 * x_1 + ... + beta_k * x_k + e, where e is a normal distribution with mean 0 and variance sigma^2
+
+mu <- # 1D vector, each mu is beta_0 + beta_1 * x_1 + ... + beta_k * x_k
+
+
+# split the dataset into training and testing data
+
+y0 <- y[1:n/2]
+y1 <- y[-(1:n/2)]
+
+L <- function(beta, x, y, sigma, n){
+    # L is the log-likelihood function
+    # beta is the param with k+1 dimensions
+    # x is the predictor matrix with size n*k+1
+    # y is the value vectror with size n/2
+    # sigma is the variance of the normal distribution
+    exp(-sum(y_i - beta_0 - sum(beta_j*x_j))^2/(2*sigma^2)) / sigma^n
+}
+
+sigma_hat_sq <- function(y, x, beta, n){
+    # sigma_hat_sq is the variance of the normal distribution
+    # y is the value vector with size n/2
+    # x is the predictor matrix with size n*k+1
+    # beta is the param with k+1 dimensions
+    # n is the number of samples
+    sum(y - x * beta)^2 / n
+}
+# Constructing null hypothesis
+beta_0_hat <- # beta is a k+1 dimensional vector, beta_0 = inverse(transpose(x_1) * x_1)*transpose(x_1)*y_1, then the rest of beta_1, ..., beta_k = 0
+
+
+# Optimization from training data
+
+sigma_0_hat <- sigma_hat_sq(y_1, x_0, beta_0_hat, n)
+L0_beta_0_hat <- L(beta, x_1, y_1, sigma_0_hat, n/2)
+
+# Estimation on tesing data
+# use LASSO to estimate here, glmnet() 
+beta_1_hat <- inverse(transpose(x_0) * x_0)*transpose(x_0)*y_0   # dimension should be k+1
+
+sigma_1_hat <- sigma_hat_sq(y_0, x_0, beta_1_hat, n)
+L0_beta_1_hat <- L(beta_1_hat, x_1, y_i, sigma_1_hat, n/2)
+
+
+# likelihood ratio evaluation
+
+L0_beta_1_hat / L0_beta_0_hat
+
