@@ -1,63 +1,81 @@
-# Param initialization
-n <- 100
-k <- 100
-p <- k + 1
+#— Install/load required package
+if(!require(glmnet)) install.packages("glmnet")
+library(glmnet)
 
-alpha <- 0.1
+set.seed(2025)
+
+### 1) Data construction and split
+n  <- 3000          # total sample size
+k  <- 10
+p  <- k + 1      # intercept + 100 predictors
+alpha <- 0.1       # test level
+sigma_true <- 2    # true noise SD
+
+# True data‐generating betas: intercept = 2, rest = 0
+beta_true <- numeric(p)
+beta_true[1:3] <- c(2, 1.5, 0.001)
+
+# Simulate predictors (columns 2..p) and add intercept column
+X <- cbind(1, matrix(rnorm(n*(p-1)), nrow=n))
+y <- as.vector(X %*% beta_true + rnorm(n, 0, sigma_true))       # %*% -> matrix‐multiplication operator
+
+# Split into two equal halves
+n2 <- n/2
+X_test  <- X[   1:n2, ]
+y_test  <- y[   1:n2  ]
+X_train <- X[-(1:n2), ]
+y_train <- y[-(1:n2)  ]
+
+### 2) Fit null model (intercept only) on TRAINING
+#   Under H0: beta = (beta0, 0, 0, …, 0).
+beta0_hat       <- rep(0, p)
+# beta0_hat[1]    <- mean(y_train)
+beta0_hat[c(1:2)] <- coef(lm(y_train~X_train[, 1:2] - 1))
+resid0_train    <- y_train - X_train %*% beta0_hat
+sigma0_hat      <- sqrt(sum(resid0_train^2) / n2)
+
+# Evaluate Null log-likelihood on TEST
+resid0_test  <- y_test  - X_test  %*% beta0_hat
+# loglik0      <- -n2/2 * log(2*pi*sigma0_hat^2) -
+#                 sum(resid0_test^2)/(2*sigma0_hat^2)
+loglik0 <- sum(dnorm(resid0_test, mean=0, sd=sigma0_hat, log=TRUE))
 
 
-# Dataset construction
-# generate a dataset with normal distribution, with mean 0 and variance to be sigma^2
-x <- # k number of predictors, something like rnorm(2*n)
-# x has size n*(k+1), the first column is 1, the rest are x_1, ..., x_k
-x_0 <- # upper half of x with size n/2*(k+1)
-x_1 <- # lower half of x with size n/2*(k+1)
+### 3) Fit alternative via LASSO on TRAINING
+#    We let glmnet pick lambda by 5-fold CV.
+cvfit   <- cv.glmnet(
+               x      = X_train[,-1],   # drop intercept col
+               y      = y_train,
+               alpha  = 1,              # LASSO penalty
+               intercept = TRUE,
+               standardize = TRUE
+           )
+lambda_star  <- cvfit$lambda.1se / 100  
 
-y <- # 2D matrix, each y is beta_0 + beta_1 * x_1 + ... + beta_k * x_k + e, where e is a normal distribution with mean 0 and variance sigma^2
+# Extract full p-vector of coefficients (including intercept)
+bmat         <- coef(cvfit, s=lambda_star)
+beta1_hat    <- as.numeric(bmat)   # length p
 
-mu <- # 1D vector, each mu is beta_0 + beta_1 * x_1 + ... + beta_k * x_k
+# Noise variance under alternative (on TRAINING residuals)
+fitted1_train <- predict(cvfit, newx=X_train[,-1], s=lambda_star)
+sigma1_hat    <- sqrt(sum((y_train - fitted1_train)^2) / n2)
 
+### 4) Evaluate alternative log-likelihood on TEST
+fitted1_test <- predict(cvfit, newx=X_test[,-1], s=lambda_star)
+loglik1      <- -n2/2 * log(2*pi*sigma1_hat^2) -
+                sum((y_test - fitted1_test)^2)/(2*sigma1_hat^2)
 
-# split the dataset into training and testing data
+### 5) Likelihood‐ratio test
+LR <- exp(loglik1 - loglik0)
+LC <- exp(loglik0 - loglik1)
 
-y0 <- y[1:n/2]
-y1 <- y[-(1:n/2)]
-
-L <- function(beta, x, y, sigma, n){
-    # L is the log-likelihood function
-    # beta is the param with k+1 dimensions
-    # x is the predictor matrix with size n*k+1
-    # y is the value vectror with size n/2
-    # sigma is the variance of the normal distribution
-    exp(-sum(y_i - beta_0 - sum(beta_j*x_j))^2/(2*sigma^2)) / sigma^n
+cat(sprintf("Null log-likelihood:      %.3f\n", loglik0))
+cat(sprintf("Alt  log-likelihood:      %.3f\n", loglik1))
+cat(sprintf("Likelihood ratio = LR:    %.3g\n", LR))
+cat(sprintf("p-value = LC:    %.20f\n", LC))
+if(LR > 1/alpha) {
+  cat("=> Reject H0 at level alpha\n")
+} else {
+  cat("=> Fail to reject H0\n")
 }
-
-sigma_hat_sq <- function(y, x, beta, n){
-    # sigma_hat_sq is the variance of the normal distribution
-    # y is the value vector with size n/2
-    # x is the predictor matrix with size n*k+1
-    # beta is the param with k+1 dimensions
-    # n is the number of samples
-    sum(y - x * beta)^2 / n
-}
-# Constructing null hypothesis
-beta_0_hat <- # beta is a k+1 dimensional vector, beta_0 = inverse(transpose(x_1) * x_1)*transpose(x_1)*y_1, then the rest of beta_1, ..., beta_k = 0
-
-
-# Optimization from training data
-
-sigma_0_hat <- sigma_hat_sq(y_1, x_0, beta_0_hat, n)
-L0_beta_0_hat <- L(beta, x_1, y_1, sigma_0_hat, n/2)
-
-# Estimation on tesing data
-# use LASSO to estimate here, glmnet() 
-beta_1_hat <- inverse(transpose(x_0) * x_0)*transpose(x_0)*y_0   # dimension should be k+1
-
-sigma_1_hat <- sigma_hat_sq(y_0, x_0, beta_1_hat, n)
-L0_beta_1_hat <- L(beta_1_hat, x_1, y_i, sigma_1_hat, n/2)
-
-
-# likelihood ratio evaluation
-
-L0_beta_1_hat / L0_beta_0_hat
 
