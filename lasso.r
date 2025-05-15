@@ -2,10 +2,10 @@
 if(!require(glmnet)) install.packages("glmnet")
 library(glmnet)
 
-set.seed(2028)
+set.seed(2048)
 
 ### fixed params
-n           <- 2000    # increase to 3000
+n           <- 200    # increase to 3000
 k           <- 10
 p           <- k + 1
 alpha       <- 0.1
@@ -29,9 +29,9 @@ for(i in seq_along(beta3_vals)) {
   
   # split into test / train
   y_test      <- y[    1:n2 ]
-  y_train     <- y[(n2+1):n ]
+  y_train     <- y[ -(1:n2) ]
   X_test      <- X[    1:n2,]
-  X_train     <- X[(n2+1):n,]
+  X_train     <- X[ -(1:n2),]
   
   # 2) null fit on TRAIN (intercept only)
   beta0_hat       <- rep(0, p)
@@ -51,7 +51,7 @@ for(i in seq_along(beta3_vals)) {
                    intercept   = TRUE,
                    standardize = TRUE
                 )
-  lambda_star <- cvfit$lambda.1se / 100
+  lambda_star <- cvfit$lambda.1se / 50
   
   # re-calc noise var on TRAIN
   fitted1_train <- predict(cvfit, newx = X_train[,-1], s = lambda_star)
@@ -83,4 +83,4 @@ plot(
   main="Split-LRT p-value vs. true beta[3]"
 )
 abline(h=alpha, col="red", lty=2)
-legend("topright", legend=c("LC","α"), col=c("black","red"), lty=1:2)
+legend("topright", legend=c("LC","alpha"), col=c("black","red"), lty=1:2)
