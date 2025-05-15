@@ -2,27 +2,27 @@
 if(!require(glmnet)) install.packages("glmnet")
 library(glmnet)
 
-set.seed(2048)
+# set.seed(2048)
 
 ### fixed params
-n           <- 200    # increase to 3000
+n           <- 1000    # increase to 3000
 k           <- 10
 p           <- k + 1
-alpha       <- 0.1
-sigma_true  <- 2
+alpha       <- 0.005
+sigma_true  <- 5
 n2          <- n/2
 
 ### simulate one design matrix once
 X <- cbind(1, matrix(rnorm(n*(p-1)), nrow=n))
 
 ### grid of signal strengths for the 3rd coefficient
-beta3_vals <- seq(0.01, 10, length.out = 100)
+beta3_vals <- seq(0, 0, length.out = 100)
 LCs        <- numeric(length(beta3_vals))
 
 for(i in seq_along(beta3_vals)) {
   # 1) set up true betas & simulate y
   beta_true    <- numeric(p)
-  beta_true[1] <- 2
+  beta_true[1] <- 0.5
   beta_true[2] <- 1.5
   beta_true[3] <- beta3_vals[i]
   y            <- as.vector(X %*% beta_true + rnorm(n, 0, sigma_true))
@@ -51,7 +51,10 @@ for(i in seq_along(beta3_vals)) {
                    intercept   = TRUE,
                    standardize = TRUE
                 )
-  lambda_star <- cvfit$lambda.1se / 50
+  lambda_star <- cvfit$lambda.1se 
+  # Extract full p-vector of coefficients (including intercept)
+  bmat         <- coef(cvfit, s=lambda_star)
+  beta1_hat    <- as.numeric(bmat)   # length p
   
   # re-calc noise var on TRAIN
   fitted1_train <- predict(cvfit, newx = X_train[,-1], s = lambda_star)
@@ -69,8 +72,8 @@ LR <- exp(loglik1 - loglik0)
 cat(sprintf("Null log-likelihood:      %.3f\n", loglik0))
 cat(sprintf("Alt  log-likelihood:      %.3f\n", loglik1))
 cat(sprintf("Likelihood ratio = LR:    %.3g\n", LR))
-cat(sprintf("p-value = LC:    %.20f\n", LCs[1]))
-if(LR > 1/alpha) {
+cat(sprintf("p-value = LC:    %.20f\n", LCs[100]))
+if(LR > (1/alpha)) {
   cat("=> Reject H0 at level alpha\n")
 } else {
   cat("=> Fail to reject H0\n")
