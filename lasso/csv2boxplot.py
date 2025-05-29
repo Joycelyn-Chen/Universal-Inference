@@ -96,7 +96,7 @@ for i, k_val in enumerate(ks):
         else:
             ax.set_xticks([])
         if j == 0:
-            ax.set_ylabel("log LC")         # mean ± IQR
+            ax.set_ylabel("LC")         # mean ± IQR
         
 # 8) global legend
 fig.legend(combo_labels, title="beta combinations",
