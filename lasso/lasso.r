@@ -5,11 +5,11 @@ library(glmnet)
 # set.seed(2048)
 
 ### fixed params
-n           <- 1000    # increase to 3000
+n           <- 100    # increase to 3000
 k           <- 100
 p           <- k + 1
 alpha       <- 0.005
-sigma_true  <- 10
+sigma_true  <- 2
 n2          <- n/2
 
 ### simulate one design matrix once
@@ -28,40 +28,45 @@ y_train     <- y[ -(1:n2) ]
 X_test      <- X[    1:n2,]
 X_train     <- X[ -(1:n2),]
 
-# 2) null fit on TRAIN (intercept only)
-beta0_hat       <- rep(0, p)
-beta0_hat[1]    <- mean(y_train)
-resid0_train    <- y_train - X_train %*% beta0_hat
-sigma0_hat      <- sqrt(sum(resid0_train^2) / n2)
+LCs <- numeric(30)
+LRs <- numeric(30)
 
-# null LL on TEST
-resid0_test <- y_test - X_test %*% beta0_hat
-loglik0     <- sum(dnorm(resid0_test, mean=0, sd=sigma0_hat, log=TRUE))
+for (i in 1:30){
+  # 2) null fit on TRAIN (intercept only)
+  beta0_hat       <- rep(0, p)
+  beta0_hat[1]    <- mean(y_train)
+  resid0_train    <- y_train - X_train %*% beta0_hat
+  sigma0_hat      <- sqrt(sum(resid0_train^2) / n2)
 
-# 3) alternative = LASSO on TRAIN
-cvfit      <- cv.glmnet(
-                  x           = X_train[,-1],  # drop intercept col
-                  y           = y_train,
-                  alpha       = 1,
-                  intercept   = TRUE,
-                  standardize = TRUE
-              )
-lambda_star <- cvfit$lambda.1se
+  # null LL on TEST
+  resid0_test <- y_test - X_test %*% beta0_hat
+  loglik0     <- sum(dnorm(resid0_test, mean=0, sd=sigma0_hat, log=TRUE))
 
-coef_star <- coef(cvfit, s = lambda_star)
-beta1_hat <- as.vector(coef_star)
+  # 3) alternative = LASSO on TRAIN
+  cvfit      <- cv.glmnet(
+                    x           = X_train[,-1],  # drop intercept col
+                    y           = y_train,
+                    alpha       = 1,
+                    intercept   = TRUE,
+                    standardize = TRUE
+                )
+  lambda_star <- cvfit$lambda.1se
 
-# re-calc noise var on TRAIN
-fitted1_train <- predict(cvfit, newx = X_train[,-1], s = lambda_star)
-sigma1_hat    <- sqrt(sum((y_train - fitted1_train)^2) / n2)
+  coef_star <- coef(cvfit, s = lambda_star)
+  beta1_hat <- as.vector(coef_star)
 
-# 4) alt log-LL on TEST
-fitted1_test <- predict(cvfit, newx = X_test[,-1], s = lambda_star)
-loglik1      <- sum(dnorm(y_test - fitted1_test, mean=0, sd=sigma1_hat, log=TRUE))
-  
-  # 5) split-LRT “p-value”
-LC <- exp(loglik0 - loglik1)
-LR <- exp(loglik1 - loglik0)
+  # re-calc noise var on TRAIN
+  fitted1_train <- predict(cvfit, newx = X_train[,-1], s = lambda_star)
+  sigma1_hat    <- sqrt(sum((y_train - fitted1_train)^2) / n2)
+
+  # 4) alt log-LL on TEST
+  fitted1_test <- predict(cvfit, newx = X_test[,-1], s = lambda_star)
+  loglik1      <- sum(dnorm(y_test - fitted1_test, mean=0, sd=sigma1_hat, log=TRUE))
+    
+    # 5) split-LRT “p-value”
+  LCs[i] <- exp(loglik0 - loglik1)
+  LRs[i] <- exp(loglik1 - loglik0)
+}
 
 cat(sprintf("Null log-likelihood:      %.3f\n", loglik0))
 cat(sprintf("Alt  log-likelihood:      %.3f\n", loglik1))
@@ -73,3 +78,4 @@ if(LR > (1/alpha)) {
   cat("=> Fail to reject H0\n")
 }
 
+boxplot(LCs)
