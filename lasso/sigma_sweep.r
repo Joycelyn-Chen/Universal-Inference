@@ -17,10 +17,10 @@ library(ggplot2)
 library(reshape2)
 
 # — Parameters
-sigma_values <- seq(4.00, 6.00, by = 0.05)   # 4.00, 4.05, 4.10, …, 5.95, 6.00
+sigma_values <- seq(3.00, 7.00, by = 0.05)   # 4.00, 4.05, 4.10, …, 5.95, 6.00
 ns           <- c(100, 1000, 10000)         # three sample sizes
 reps         <- 1000                        # # of sims per combination
-k            <- 100                         # number of predictors (dropping intercept)
+k            <- 200                         # number of predictors (dropping intercept)
 p            <- k + 1                       # total columns in X (including intercept)
 alpha        <- 0.005                       # (not used directly for P(LC<…))
 n_beta_sets  <- 2
@@ -52,7 +52,7 @@ for (n in ns) {
     b3       <- bs$b3
     beta_lbl <- bs$label
     linetype <- bs$linetype
-    
+    beta0_hat
     cat("======== n =", n, ", setting:", beta_lbl, "========\n")
     
     for (sigma_true in sigma_values) {
@@ -125,7 +125,7 @@ for (n in ns) {
       
       # Print progress
       cat(sprintf(
-        "  σ=%.2f → P(LC<0.005)=%.3f, P(LC<0.01)=%.3f, P(LC<0.05)=%.3f\n",
+        "  σ=%.2f → P(p-value<0.005)=%.3f, P(p-value<0.01)=%.3f, P(p-value<0.05)=%.3f\n",
         sigma_true, prop_005, prop_01, prop_05
       ))
       
@@ -155,7 +155,7 @@ df_long <- melt(
 df_long$threshold <- factor(
   df_long$threshold,
   levels = c("prop_05", "prop_01", "prop_005"),
-  labels = c("LC < 0.05", "LC < 0.01", "LC < 0.005")
+  labels = c("p-value < 0.05", "p-value < 0.01", "p-value < 0.005")
 )
 
 ############################################################
@@ -183,7 +183,7 @@ for (thr in levels(df_long$threshold)) {
        ) +
        theme_minimal(base_size = 12) +
        labs(
-         title = paste0("Proportion of LC < ", sub("LC <", "", thr)),
+         title = paste0("Proportion of p-value < ", sub("p-value <", "", thr)),
          x     = expression(sigma_true),
          y     = "Proportion of Simulations",
          color = "Sample size (n)",
