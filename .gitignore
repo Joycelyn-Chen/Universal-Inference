@@ -57,3 +57,18 @@ rsconnect/
 # ipynb
 *.ipynb_checkpoints
 */*.ipynb_checkpoints
+
+# images
+*.jpg
+*.jpeg
+*.png
+*/*.jpg
+*/*.jpeg
+*/*.png
+*/*/*.jpg
+*/*/*.jpeg
+*/*/*.png
+
+*.csv
+*/*.csv
+*/*/*.csv
