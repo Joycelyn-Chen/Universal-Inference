@@ -17,8 +17,8 @@ library(ggplot2)
 library(reshape2)
 
 # — Parameters
-sigma_values <- seq(3.00, 7.00, by = 0.05)   # 4.00, 4.05, 4.10, …, 5.95, 6.00
-ns           <- c(100, 1000, 10000)         # three sample sizes
+sigma_values <- seq(3.00, 7.00, by = 0.1)   # 4.00, 4.05, 4.10, …, 5.95, 6.00
+ns           <- c(500, 1000, 10000)         # three sample sizes
 reps         <- 1000                        # # of sims per combination
 k            <- 200                         # number of predictors (dropping intercept)
 p            <- k + 1                       # total columns in X (including intercept)
@@ -26,9 +26,14 @@ alpha        <- 0.005                       # (not used directly for P(LC<…))
 n_beta_sets  <- 2
 
 # Two β‐settings (only β₂ and β₃ vary; β₁ is fixed = 2)
+# beta_settings <- list(
+#   list(b2 = 1.5, b3 = 0.5, label = "β₂=1.5,β₃=0.5", linetype = "solid"),
+#   list(b2 = 0.0, b3 = 0.0, label = "β₂=0,  β₃=0",   linetype = "dashed")
+# )
+# beta setting (only β₂ = 0, others varies)
 beta_settings <- list(
-  list(b2 = 1.5, b3 = 0.5, label = "β₂=1.5,β₃=0.5", linetype = "solid"),
-  list(b2 = 0.0, b3 = 0.0, label = "β₂=0,  β₃=0",   linetype = "dashed")
+  list(b2 = 1.5, label = "β1=1.5", linetype = "solid")
+  # list(b2 = 0.0, label = "β1=0.0", linetype = "solid")
 )
 
 # Prepare a data.frame to collect results
@@ -49,7 +54,7 @@ for (n in ns) {
   
   for (bs in beta_settings) {
     b2       <- bs$b2
-    b3       <- bs$b3
+    # b3       <- bs$b3
     beta_lbl <- bs$label
     linetype <- bs$linetype
     beta0_hat
@@ -70,7 +75,7 @@ for (n in ns) {
         beta_true <- numeric(p)
         beta_true[1] <- 2.0
         beta_true[2] <- b2
-        beta_true[3] <- b3
+        # beta_true[3] <- b3
         
         # Generate y = X β + ε, ε ~ N(0, σₜᵣᵤₑ²)
         y <- as.vector(X %*% beta_true + rnorm(n, sd = sigma_true))
