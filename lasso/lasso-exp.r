@@ -19,13 +19,20 @@ ncores <- 38          # number of cores to use
 
 # — Parameter grid
 paramGrid <- expand.grid(
-  n      = c(100,   1000, 10000),
-  k      = c(10,    50,   100,  500,  2000, 5000),
-  beta1  = c(0.1,   1.0,  10),
-  beta2  = c(0.1,   1.0,  10),
-  beta3  = c(0.1,   1.0,  10),
+  n      = c(500,  1000, 10000),
+  k      = c(200),
+  beta1  = 0,
+  beta2  = 0,
   stringsAsFactors = FALSE
 )
+# paramGrid <- expand.grid(
+#   n      = c(100,   1000, 10000),
+#   k      = c(10,    50,   100,  500,  2000, 5000),
+#   beta1  = c(0.1,   1.0,  10),
+#   beta2  = c(0.1,   1.0,  10),
+#   beta3  = c(0.1,   1.0,  10),
+#   stringsAsFactors = FALSE
+# )
 
 # — parallel setup
 cl <- makeCluster(ncores)
@@ -115,9 +122,9 @@ gg <- ggplot(results, aes(x = k, y = LC, fill = beta1)) +
   facet_grid(beta23 ~ n, scales = "free_x", labeller = label_value) +
   labs(
     x    = "Number of predictors (k)",
-    y    = "LC (p-value)",
+    y    = "p-value",
     fill = expression(beta[1]),
-    title = "Distribution of LC across k, β₂/β₃ settings and sample sizes"
+    title = "Distribution of LC across k, β settings and sample sizes"
   ) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
