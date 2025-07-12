@@ -18,7 +18,8 @@ library(reshape2)
 
 # — Parameters
 sigma_values <- seq(3.00, 7.00, by = 0.1)   # 4.00, 4.05, 4.10, …, 5.95, 6.00
-ns           <- c(500, 1000, 10000)         # three sample sizes
+# ns           <- c(500, 1000, 10000)         # three sample sizes
+ns           <- c(50, 100, 150)
 reps         <- 1000                        # # of sims per combination
 k            <- 200                         # number of predictors (dropping intercept)
 p            <- k + 1                       # total columns in X (including intercept)
