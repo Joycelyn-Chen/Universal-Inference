@@ -67,7 +67,7 @@ rsconnect/
 */*.png
 */*/*.jpg
 */*/*.jpeg
-*/*/*.png
+# */*/*.png
 
 *.csv
 */*.csv
